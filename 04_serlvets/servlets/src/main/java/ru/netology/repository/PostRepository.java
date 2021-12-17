@@ -3,27 +3,28 @@ package ru.netology.repository;
 import ru.netology.exception.NotFoundException;
 import ru.netology.model.Post;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class PostRepository {
-    private final List<Post> posts = new ArrayList<>();
-    private long nextPostId = 1L;
+    private final List<Post> posts = new CopyOnWriteArrayList<>();
+    private final AtomicLong nextPostId = new AtomicLong(1L);
 
-    public synchronized List<Post> all() {
+    public List<Post> all() {
         return posts;
     }
 
-    public synchronized Optional<Post> getById(long id) {
+    public Optional<Post> getById(long id) {
         return posts.stream()
                 .filter(post -> post.getId() == id)
                 .findFirst();
     }
 
-    public synchronized Post save(Post post) {
+    public Post save(Post post) {
         if (post.getId() == 0L) {
-            post.setId(nextPostId++);
+            post.setId(nextPostId.getAndIncrement());
             posts.add(post);
             return post;
         } else {
@@ -33,7 +34,7 @@ public class PostRepository {
         }
     }
 
-    public synchronized void removeById(long id) {
+    public void removeById(long id) {
         posts.removeIf(post -> post.getId() == id);
     }
 }
