@@ -9,7 +9,10 @@ public class Main {
         final Server server = new Server();
         server.addHandler("GET", "/messages", (request, responseStream) -> {
             final String text = "<h1>GET /messages</h1>\n" +
-                    "Headers: " + request.getHeaders();
+                    "<div>Path: " + request.getPath() + "</div>" +
+                    "<div>Params: " + request.getQueryParams() + "</div>" +
+                    "<div>Param key1: " + request.getQueryParam("key1") + "</div>" +
+                    "<div>Headers: " + request.getHeaders() + "</div>";
             writeAnyData(text, responseStream);
         });
         server.addHandler("POST", "/messages", (request, responseStream) -> {

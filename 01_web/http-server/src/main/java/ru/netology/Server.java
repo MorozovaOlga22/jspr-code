@@ -1,16 +1,18 @@
 package ru.netology;
 
+import org.apache.http.client.utils.URLEncodedUtils;
+
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -113,7 +115,8 @@ public class Server {
             }
         }
 
-        return new Request(parts[0], getCleanPath(parts[1]), headers.toString(), body.toString());
+        final String path = parts[1];
+        return new Request(parts[0], getCleanPath(path), getParams(path), headers.toString(), body.toString());
     }
 
     private String getCleanPath(String path) {
@@ -121,6 +124,17 @@ public class Server {
             return path.substring(0, path.indexOf("?"));
         }
         return path;
+    }
+
+    private Map<String, List<String>> getParams(String path) {
+        if (!path.contains("?")) {
+            return Collections.emptyMap();
+        }
+        final String params = path.substring(path.indexOf("?") + 1);
+        final HashMap<String, List<String>> paramsMap = new HashMap<>();
+        URLEncodedUtils.parse(params, StandardCharsets.UTF_8)
+                .forEach(param -> paramsMap.computeIfAbsent(param.getName(), anything -> new ArrayList<>()).add(param.getValue()));
+        return paramsMap;
     }
 
     private void makeNotFoundResponse(BufferedOutputStream out) throws IOException {
