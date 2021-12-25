@@ -93,30 +93,34 @@ public class Server {
         final StringBuilder headers = new StringBuilder();
         final StringBuilder body = new StringBuilder();
         boolean hasBody = false;
+        String contentType = "";
 
         String inputLine = in.readLine();
+        int bodyLen = 0;
         while (inputLine.length() > 0) {
             headers.append(inputLine);
             if (inputLine.startsWith("Content-Length: ")) {
                 int index = inputLine.indexOf(':') + 1;
-                String len = inputLine.substring(index).trim();
-                if (Integer.parseInt(len) > 0) {
+                bodyLen = Integer.parseInt(inputLine.substring(index).trim());
+                if (bodyLen > 0) {
                     hasBody = true;
                 }
+            } else if (inputLine.startsWith("Content-Type: ")) {
+                int index = inputLine.indexOf(':') + 1;
+                contentType = inputLine.substring(index).trim();
             }
             inputLine = in.readLine();
         }
 
         if (hasBody) {
-            inputLine = in.readLine();
-            while (inputLine != null && inputLine.length() > 0) {
-                body.append(inputLine);
-                inputLine = in.readLine();
-            }
+            final char[] bodyBuff = new char[bodyLen];
+            in.read(bodyBuff);
+            body.append(bodyBuff);
         }
 
         final String path = parts[1];
-        return new Request(parts[0], getCleanPath(path), getParams(path), headers.toString(), body.toString());
+        final String bodyStr = body.toString();
+        return new Request(parts[0], getCleanPath(path), getQueryParams(path), headers.toString(), bodyStr, getPostParams(bodyStr, contentType));
     }
 
     private String getCleanPath(String path) {
@@ -126,15 +130,26 @@ public class Server {
         return path;
     }
 
-    private Map<String, List<String>> getParams(String path) {
+    private Map<String, List<String>> getQueryParams(String path) {
         if (!path.contains("?")) {
             return Collections.emptyMap();
         }
         final String params = path.substring(path.indexOf("?") + 1);
+        return getParams(params);
+    }
+
+    private HashMap<String, List<String>> getParams(String params) {
         final HashMap<String, List<String>> paramsMap = new HashMap<>();
         URLEncodedUtils.parse(params, StandardCharsets.UTF_8)
                 .forEach(param -> paramsMap.computeIfAbsent(param.getName(), anything -> new ArrayList<>()).add(param.getValue()));
         return paramsMap;
+    }
+
+    private Map<String, List<String>> getPostParams(String body, String contentType) {
+        if (!"application/x-www-form-urlencoded".equals(contentType)) {
+            return new HashMap<>();
+        }
+        return getParams(body);
     }
 
     private void makeNotFoundResponse(BufferedOutputStream out) throws IOException {
