@@ -13,18 +13,18 @@ public class Main {
                     "<div>Params: " + request.getQueryParams() + "</div>" +
                     "<div>Param key1: " + request.getQueryParam("key1") + "</div>" +
                     "<div>Headers: " + request.getHeaders() + "</div>";
-            writeAnyData(text, responseStream);
+            write(text, responseStream);
         });
         server.addHandler("POST", "/messages", (request, responseStream) -> {
             final String text = "<h1>POST /messages</h1>\n" +
                     "Headers: " + request.getHeaders() + "\n" +
                     "Body: " + request.getBody();
-            writeAnyData(text, responseStream);
+            write(text, responseStream);
         });
         server.start();
     }
 
-    private static void writeAnyData(final String content, final BufferedOutputStream out) throws IOException {
+    private static void write(final String content, final BufferedOutputStream out) throws IOException {
         final String respBuilder = "HTTP/1.1 200 OK\r\n" +
                 "Content-Type: text/html\r\n" +
                 "Content-Length: " + content.length() + "\r\n" +

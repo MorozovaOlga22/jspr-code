@@ -1,18 +1,16 @@
 package ru.netology;
 
-import org.apache.http.client.utils.URLEncodedUtils;
-
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -60,7 +58,7 @@ public class Server {
         try (final BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              final BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream())) {
 
-            final Request request = getRequest(in);
+            final Request request = Request.getRequest(in);
             if (request == null) {
                 // just close socket
                 return;
@@ -78,63 +76,6 @@ public class Server {
             }
             out.flush();
         }
-    }
-
-    private Request getRequest(BufferedReader in) throws IOException {
-        // read only request line for simplicity
-        // must be in form GET /path HTTP/1.1
-        final String requestLine = in.readLine();
-        final String[] parts = requestLine.split(" ");
-        if (parts.length != 3) {
-            // just close socket
-            return null;
-        }
-
-        final StringBuilder headers = new StringBuilder();
-        final StringBuilder body = new StringBuilder();
-        boolean hasBody = false;
-
-        String inputLine = in.readLine();
-        while (inputLine.length() > 0) {
-            headers.append(inputLine);
-            if (inputLine.startsWith("Content-Length: ")) {
-                int index = inputLine.indexOf(':') + 1;
-                String len = inputLine.substring(index).trim();
-                if (Integer.parseInt(len) > 0) {
-                    hasBody = true;
-                }
-            }
-            inputLine = in.readLine();
-        }
-
-        if (hasBody) {
-            inputLine = in.readLine();
-            while (inputLine != null && inputLine.length() > 0) {
-                body.append(inputLine);
-                inputLine = in.readLine();
-            }
-        }
-
-        final String path = parts[1];
-        return new Request(parts[0], getCleanPath(path), getParams(path), headers.toString(), body.toString());
-    }
-
-    private String getCleanPath(String path) {
-        if (path.contains("?")) {
-            return path.substring(0, path.indexOf("?"));
-        }
-        return path;
-    }
-
-    private Map<String, List<String>> getParams(String path) {
-        if (!path.contains("?")) {
-            return Collections.emptyMap();
-        }
-        final String params = path.substring(path.indexOf("?") + 1);
-        final HashMap<String, List<String>> paramsMap = new HashMap<>();
-        URLEncodedUtils.parse(params, StandardCharsets.UTF_8)
-                .forEach(param -> paramsMap.computeIfAbsent(param.getName(), anything -> new ArrayList<>()).add(param.getValue()));
-        return paramsMap;
     }
 
     private void makeNotFoundResponse(BufferedOutputStream out) throws IOException {
